@@ -44,6 +44,7 @@ onMounted(() => {
       maxZoom: 18,
     }).addTo(map)
     drawPaths()
+    setTimeout(() => map?.invalidateSize(), 200) // ⭐️ 初回も念のため
   }
 })
 
@@ -52,6 +53,7 @@ watch(
   () => props.selectedPathId,
   () => {
     drawPaths()
+    map?.invalidateSize() // ⭐️ タブ切り替え後に地図サイズを再計算
   },
 )
 
@@ -60,6 +62,7 @@ watch(
   () => props.allPaths,
   () => {
     drawPaths()
+    map?.invalidateSize() // ⭐️ タブ切り替え後に地図サイズを再計算
   },
   { deep: true },
 )

@@ -60,39 +60,66 @@
           </v-col>
         </v-row>
 
-        <!-- 航路パターン表（追加） -->
-        <v-row>
-          <v-col cols="12">
-            <v-data-table
-              :items="flightTable"
-              :headers="[
-                { text: '出発地', value: 'from' },
-                { text: '目的地', value: 'to' },
-                { text: '便名', value: 'flight' },
-              ]"
-              class="elevation-1"
-              item-value="flight"
-              @click:row="selectFlight"
-            />
-          </v-col>
-        </v-row>
+        <!-- タブ切り替え -->
+        <v-tabs v-model="tab" class="my-4">
+          <v-tab v-for="n in 3" :key="n" :value="n">パターン {{ n }}</v-tab>
+        </v-tabs>
 
-        <!-- グラフと地図 -->
-        <v-row>
-          <v-col cols="4">
-            <TimelineChart :labels="timestamps" :data="altitudes" v-if="altitudes.length" />
-          </v-col>
-          <v-col cols="8">
-            <FlightMap :allPaths="flightTable" :selectedPathId="selectedFlightId" />
-          </v-col>
-        </v-row>
+        <v-window v-model="tab">
+          <v-window-item v-for="n in 3" :key="n" :value="n">
+            <!-- トグルボタン群 -->
+            <v-row class="mb-4">
+              <v-col
+                cols="auto"
+                v-for="(flight, index) in flightDataSets[n - 1]"
+                :key="flight.flight"
+              >
+                <v-btn
+                  :color="flight.flight === selectedFlightId ? 'green' : 'red'"
+                  @click="selectFlight(flight)"
+                  variant="flat"
+                >
+                  {{ flight.flight }}
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <!-- 航路パターン表（追加） -->
+            <v-row>
+              <v-col cols="12">
+                <v-data-table
+                  :items="flightDataSets[n - 1]"
+                  :headers="[
+                    { text: '出発地', value: 'from' },
+                    { text: '目的地', value: 'to' },
+                    { text: '便名', value: 'flight' },
+                  ]"
+                  class="elevation-1"
+                  item-value="flight"
+                  @click:row="selectFlight"
+                />
+              </v-col>
+            </v-row>
+
+            <!-- グラフと地図 -->
+            <v-row>
+              <v-col cols="4">
+                <TimelineChart :labels="timestamps" :data="altitudes" v-if="altitudes.length" />
+              </v-col>
+              <v-col cols="8">
+                <FlightMap :allPaths="flightDataSets[n - 1]" :selectedPathId="selectedFlightId" />
+              </v-col>
+            </v-row>
+          </v-window-item>
+        </v-window>
       </v-container>
     </v-main>
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
+
 import TimelineChart from './components/TimelineChart.vue'
 import FlightMap from './components/FlightMap.vue'
 
@@ -116,6 +143,7 @@ const coordinates = ref<[number, number][]>([])
 
 const drawer = ref(true)
 const mini = ref(false)
+const tab = ref(1)
 
 const newComment = ref('')
 
@@ -133,28 +161,29 @@ const comments = ref<Comment[]>([
   { user: 'ユーザーB', icon: 'mdi-airplane-takeoff', message: '離陸時に揺れました' },
 ])
 
-const flightTable = ref<FlightPath[]>([])
+const flightDataSets = ref<FlightPath[][]>([[], [], []])
 const selectedFlightId = ref<string>('')
 
 const selectFlight = (flight: FlightPath) => {
   if (!flight || !flight.path) return
-  selectedFlightId.value = flight.flight
-  timestamps.value = flight.path.map((p) => new Date(p[0] * 1000).toLocaleTimeString())
-  altitudes.value = flight.path.map((p) => p[7])
-  coordinates.value = flight.path.map((p) => [p[1], p[2]])
+  selectedFlightId.value = '' // 一旦クリア
+  nextTick(() => {
+    selectedFlightId.value = flight.flight
+    timestamps.value = flight.path.map((p) => new Date(p[0] * 1000).toLocaleTimeString())
+    altitudes.value = flight.path.map((p) => p[7])
+    coordinates.value = flight.path.map((p) => [p[1], p[2]])
+  })
 }
 
-const loadFlightData = () => {
-  const selected = flightTable.value.find((f) => f.flight === icao24.value)
-  if (!selected) return
-  selectedFlightId.value = selected.flight
-  timestamps.value = selected.path.map((p) => new Date(p[0] * 1000).toLocaleTimeString())
-  altitudes.value = selected.path.map((p) => p[7])
-  coordinates.value = selected.path.map((p) => [p[1], p[2]])
-}
-
-onMounted(async () => {
+const loadFlightData = async () => {
   const data = await fetch('/flightData.json').then((res) => res.json())
-  flightTable.value = data
-})
+  const splitSize = Math.ceil(data.length / 3)
+  flightDataSets.value = [
+    data.slice(0, splitSize),
+    data.slice(splitSize, splitSize * 2),
+    data.slice(splitSize * 2),
+  ]
+}
+
+onMounted(loadFlightData)
 </script>
