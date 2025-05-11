@@ -3,8 +3,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
+import { onMounted, ref, watch } from 'vue'
 
 interface FlightPath {
   from: string
@@ -28,7 +28,8 @@ const drawPaths = () => {
 
   // 再描画
   for (const path of props.allPaths) {
-    const latlngs = path.path.map((p) => [p[1], p[2]])
+    const latlngs: [number, number][] = path.path.map((p) => [p[1], p[2]])
+    // 1つのフライトの経路を描画
     const polyline = L.polyline(latlngs, {
       color: path.flight === props.selectedPathId ? 'red' : 'blue',
       weight: path.flight === props.selectedPathId ? 4 : 2,

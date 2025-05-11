@@ -60,54 +60,77 @@
           </v-col>
         </v-row>
 
-        <!-- タブ切り替え -->
+        <!-- タブ -->
         <v-tabs v-model="tab" class="my-4">
           <v-tab v-for="n in 3" :key="n" :value="n">パターン {{ n }}</v-tab>
         </v-tabs>
 
+        <!-- 各タブごとの表示 -->
         <v-window v-model="tab">
           <v-window-item v-for="n in 3" :key="n" :value="n">
-            <!-- トグルボタン群 -->
-            <v-row class="mb-4">
-              <v-col
-                cols="auto"
-                v-for="(flight, index) in flightDataSets[n - 1]"
-                :key="flight.flight"
-              >
-                <v-btn
-                  :color="flight.flight === selectedFlightId ? 'green' : 'red'"
-                  @click="selectFlight(flight)"
-                  variant="flat"
-                >
-                  {{ flight.flight }}
-                </v-btn>
-              </v-col>
-            </v-row>
-
-            <!-- 航路パターン表（追加） -->
             <v-row>
-              <v-col cols="12">
-                <v-data-table
-                  :items="flightDataSets[n - 1]"
-                  :headers="[
-                    { text: '出発地', value: 'from' },
-                    { text: '目的地', value: 'to' },
-                    { text: '便名', value: 'flight' },
-                  ]"
-                  class="elevation-1"
-                  item-value="flight"
-                  @click:row="selectFlight"
-                />
-              </v-col>
-            </v-row>
+              <v-col cols="12" md="8">
+                <!-- 高度表セクション -->
+                <v-card class="mb-4" title="高度表" style="padding: 16px">
+                  <TimelineChart :labels="timestamps" :data="altitudes" v-if="altitudes.length" />
+                </v-card>
 
-            <!-- グラフと地図 -->
-            <v-row>
-              <v-col cols="4">
-                <TimelineChart :labels="timestamps" :data="altitudes" v-if="altitudes.length" />
+                <!-- タイムライン表セクション -->
+                <v-card title="タイムライン一覧" style="padding: 16px">
+                  <!-- タイムライン表1 -->
+                  <div class="mb-4" style="height: 300px">
+                    <div class="text-subtitle-2 mb-1">FlightA</div>
+                    <PeriodicTimelineChart
+                      flightName="FlightA"
+                      startTime="2025-05-11T10:00:00"
+                      endTime="2025-05-11T10:15:00"
+                      :periodMinutes="3"
+                    />
+                  </div>
+
+                  <!-- タイムライン表2 -->
+                  <div class="mb-4" style="height: 100px">
+                    <div class="text-subtitle-2 mb-1">FlightB</div>
+                    <PeriodicTimelineChart
+                      flightName="FlightB"
+                      startTime="2025-05-11T10:00:00"
+                      endTime="2025-05-11T10:15:00"
+                      :periodMinutes="3"
+                    />
+                  </div>
+
+                  <!-- タイムライン表3 -->
+                  <div style="height: 100px">
+                    <div class="text-subtitle-2 mb-1">FlightC</div>
+                    <PeriodicTimelineChart
+                      flightName="FlightC"
+                      startTime="2025-05-11T10:00:00"
+                      endTime="2025-05-11T10:15:00"
+                      :periodMinutes="3"
+                    />
+                  </div>
+                </v-card>
               </v-col>
-              <v-col cols="8">
-                <FlightMap :allPaths="flightDataSets[n - 1]" :selectedPathId="selectedFlightId" />
+
+              <!-- 右カラム：ボタン群と地図 -->
+              <v-col cols="12" md="4">
+                <v-card class="mb-4" title="操作ボタン">
+                  <v-row>
+                    <v-col cols="12" v-for="flight in flightDataSets[n - 1]" :key="flight.flight">
+                      <v-btn
+                        block
+                        :color="flight.flight === selectedFlightId ? 'green' : 'red'"
+                        @click="selectFlight(flight)"
+                      >
+                        {{ flight.flight }}
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </v-card>
+
+                <v-card title="地図">
+                  <FlightMap :allPaths="flightDataSets[n - 1]" :selectedPathId="selectedFlightId" />
+                </v-card>
               </v-col>
             </v-row>
           </v-window-item>
@@ -118,10 +141,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 
-import TimelineChart from './components/TimelineChart.vue'
 import FlightMap from './components/FlightMap.vue'
+import PeriodicTimelineChart from './components/PeriodicTimelineChart.vue'
+import TimelineChart from './components/TimelineChart.vue'
+// script setup 部分に追加
 
 interface Comment {
   user: string
